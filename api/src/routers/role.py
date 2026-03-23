@@ -1,8 +1,7 @@
 from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from pydantic import BaseModel
-from ._base_router import BaseRouterModel
+from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level
 from ..models import Role, RoleCreate, RoleUpdate
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
@@ -10,14 +9,6 @@ from ..middlewares.require import require, RolesEnum
 # Aqui está o "pulo do gato": injetamos a dependência no nível do Router.
 # Agora, QUALQUER rota definida neste arquivo exigirá o header Authorization.
 role_router_model = BaseRouterModel(Role)
-
-DENIED_ACCESS_EXCEPTION = HTTPException(status_code=403, detail='Acesso negado: nível de acesso insuficiente.')
-
-
-def get_user_access_level(current_user: Dict) -> int:
-    """Função auxiliar para obter o nível de acesso do usuário atual."""
-    role_info = current_user.get('role', {})
-    return int(role_info.get('access_level', 0))
 
 
 @role_router_model.router.get('/')
@@ -65,10 +56,10 @@ def create_role(
     try:
         # Corrigindo a criação da instância de Role
         new_role_instance = Role(**new_role.dict())
-        rowcount = controller.insert(new_role_instance)
+        controller.insert(new_role_instance)
         return {
             'message': 'Role created successfully',
-            'affected_rows': rowcount
+            'new_role': new_role
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -91,7 +82,7 @@ def update_role(
             raise HTTPException(status_code=404, detail='Item not found')
         
         return {
-            'message': 'Role updated successfully',
+            'message': f'Role of id {id} updated successfully',
             'affected_rows': rowcount
         }
     except Exception as e:
@@ -111,6 +102,6 @@ def delete_role(
         raise HTTPException(status_code=404, detail='Item not found')
     
     return {
-        'message': 'Role deleted successfully',
+        'message': f'Role of id {id} deleted successfully',
         'affected_rows': rowcount
     }

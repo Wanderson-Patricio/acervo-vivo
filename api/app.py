@@ -8,15 +8,24 @@ load_dotenv(".env", override=True)
 
 from src.routers import (
     role_router_model,
+    contact_router_model,
     auth_router
 )
 
 
 tags_metadata = [
     {
+        "name": "Authentication",
+        "description": "Endpoints relacionados à autenticação de usuários."
+    },
+    {
         "name": "Roles",
         "description": "Endpoints relacionados a papéis de usuário."
-    }
+    },
+    {
+        "name": "Contacts",
+        "description": "Endpoints relacionados a contatos de usuários."
+    },
 ]
 
 app: FastAPI = FastAPI(
@@ -36,6 +45,7 @@ app: FastAPI = FastAPI(
 
 routers_to_include: list[APIRouter] = [
     role_router_model.router,
+    contact_router_model.router,
     auth_router
 ]
 

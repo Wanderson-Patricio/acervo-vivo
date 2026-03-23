@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-auth_router = APIRouter(prefix='/auth', tags=['Auth'])
+auth_router = APIRouter(prefix='/auth', tags=['Authentication'])
 INVALID_AUTH_EXC = HTTPException(status_code=401, detail='Email ou senha inválidos')
 
 # --- Funções Auxiliares ---
