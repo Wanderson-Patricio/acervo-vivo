@@ -9,6 +9,7 @@ load_dotenv(".env", override=True)
 from src.routers import (
     role_router_model,
     contact_router_model,
+    address_router_model,
     auth_router
 )
 
@@ -26,6 +27,10 @@ tags_metadata = [
         "name": "Contacts",
         "description": "Endpoints relacionados a contatos de usuários."
     },
+    {
+        "name": "Addresses",
+        "description": "Endpoints relacionados a endereços de usuários."
+    }
 ]
 
 app: FastAPI = FastAPI(
@@ -46,6 +51,7 @@ app: FastAPI = FastAPI(
 routers_to_include: list[APIRouter] = [
     role_router_model.router,
     contact_router_model.router,
+    address_router_model.router,
     auth_router
 ]
 
@@ -53,7 +59,7 @@ for rout in routers_to_include:
     app.include_router(rout)
 
 
-@app.get('/')
+@app.get('/', tags=['Root'])
 def hello() -> Dict[str, str]:
     return {'message': 'Hello, World!'}
 

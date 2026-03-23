@@ -1,5 +1,6 @@
 from fastapi import HTTPException, Request, Depends
 from typing import Any, Dict, List
+from pydantic import BaseModel
 
 from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level
 from ..models import Role, RoleCreate, RoleUpdate
@@ -11,12 +12,12 @@ from ..middlewares.require import require, RolesEnum
 role_router_model = BaseRouterModel(Role)
 
 
-@role_router_model.router.get('/')
+@role_router_model.router.get('/', response_model=List[Role])
 @require(role=RolesEnum.Viewer)
 def list_roles(
         request: Request,
         current_user: Dict = Depends(get_current_user)
-    ) -> List[Dict]:
+    ) -> List[Role]:
 
     query_params = dict(request.query_params)
     controller = role_router_model.controller
@@ -24,14 +25,14 @@ def list_roles(
     user_access_level = get_user_access_level(current_user)
     result = [role for role in result if role.access_level <= user_access_level]
 
-    return [data.to_dict() for data in result]
+    return [data for data in result]
 
-@role_router_model.router.get('/{id:int}')
+@role_router_model.router.get('/{id:int}', response_model=Role)
 @require(role=RolesEnum.Viewer)
 def get_by_id(
         id: int,
         current_user: Dict = Depends(get_current_user)
-    ) -> Dict[str, Any]:
+    ) -> Role:
 
     user_role = Role(**current_user.get("role"))
 
@@ -42,36 +43,44 @@ def get_by_id(
     data = controller.get_by_id(id)
     if not data:
         raise HTTPException(status_code=404, detail='Item not found')
-    return data.to_dict()
+    return data
 
 
-@role_router_model.router.post('/')
+class RoleCreateResponse(BaseModel):
+    message: str
+    role: RoleCreate
+
+@role_router_model.router.post('/', response_model=RoleCreateResponse)
 @require(role=RolesEnum.Admin)
 def create_role(
         new_role: RoleCreate,
         current_user: Dict = Depends(get_current_user)
-    ) -> Dict[str, Any]:
+    ) -> RoleCreateResponse:
 
     controller = role_router_model.controller
     try:
         # Corrigindo a criação da instância de Role
         new_role_instance = Role(**new_role.dict())
         controller.insert(new_role_instance)
-        return {
-            'message': 'Role created successfully',
-            'new_role': new_role
-        }
+        return RoleCreateResponse(
+            message='Role created successfully',
+            role=new_role
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
 
-@role_router_model.router.put('/{id:int}')
+class RoleUpdateResponse(BaseModel):
+    message: str
+    affected_rows: int
+
+@role_router_model.router.put('/{id:int}', response_model=RoleUpdateResponse)
 @require(role=RolesEnum.Admin)
 def update_role(
         id: int,
         updated_fields: RoleUpdate,
         current_user: Dict = Depends(get_current_user)
-    ) -> Dict[str, Any]:
+    ) -> RoleUpdateResponse:
 
     controller = role_router_model.controller
     try:
@@ -81,27 +90,31 @@ def update_role(
         if rowcount == 0:
             raise HTTPException(status_code=404, detail='Item not found')
         
-        return {
-            'message': f'Role of id {id} updated successfully',
-            'affected_rows': rowcount
-        }
+        return RoleUpdateResponse(
+            message=f'Role of id {id} updated successfully',
+            affected_rows=rowcount
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
 
-@role_router_model.router.delete('/{id:int}')
+class RoleDeleteResponse(BaseModel):
+    message: str
+    affected_rows: int
+
+@role_router_model.router.delete('/{id:int}', response_model=RoleDeleteResponse)
 @require(role=RolesEnum.Admin)
 def delete_role(
         id: int,
         current_user: Dict = Depends(get_current_user)
-    ) -> Dict[str, Any]:
+    ) -> RoleDeleteResponse:
 
     controller = role_router_model.controller
     rowcount = controller.delete(id)
     if rowcount == 0:
         raise HTTPException(status_code=404, detail='Item not found')
     
-    return {
-        'message': f'Role of id {id} deleted successfully',
-        'affected_rows': rowcount
-    }
+    return RoleDeleteResponse(
+        message=f'Role of id {id} deleted successfully',
+        affected_rows=rowcount
+    )

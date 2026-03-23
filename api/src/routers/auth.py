@@ -33,8 +33,12 @@ def verify_user_credentials(user_id: int, password: str) -> bool:
 
 # --- Endpoint Principal ---
 
-@auth_router.post('/login')
-def login(request: LoginRequest):
+class AuthLoginResponse(BaseModel):
+    message: str
+    access_token: str
+
+@auth_router.post('/login', response_model=AuthLoginResponse)
+def login(request: LoginRequest) -> AuthLoginResponse:
     # 1. Busca o usuário
     user = get_user_by_email(request.email)
     if not user:
@@ -44,12 +48,12 @@ def login(request: LoginRequest):
     if not verify_user_credentials(user.id, request.password):
         raise INVALID_AUTH_EXC
     
-    # 3. Busca permissões (Role)
-    
-
     # 4. Gera o Token
     token = AuthJWT.create_access_token({
         'user_id': user.id
     })
 
-    return {'message': 'Login successful', 'access_token': token}
+    return AuthLoginResponse(
+        message='Login successful',
+        access_token=token
+    )

@@ -1,6 +1,6 @@
 Finalizado autenticação
 
-finalizado CRUD de roles
+finalizado CRUD de roles, contacts, addresses
 
-#TODO
-Implementar CRUD de Contato
+# TODO
+Implementar CRUD de authentication

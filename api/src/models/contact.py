@@ -31,21 +31,19 @@ class Contact(BasePostgreSQLModel):
             "phone_number": self.formatted_phone_number
         }
 
-    def email_validator(self, value: str) -> str:
+    def email_validator(self, value: str) -> None:
         if value and not re.match(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$', value):
             raise ValueError('Invalid email address')
-        return value
 
     def phone_number_validator(self, value: str) -> str:
         if value:
             # Remove todos os caracteres não numéricos
             digits = re.sub(r'\D', '', value)
-            # Verifica se o número possui o formato correto
+            # Verifica se o número possui o formato correto (12 ou 13 dígitos)
             if not re.match(r'^\d{12,13}$', digits):
-                raise ValueError('Invalid phone number format. Expected format: +<country_code> (DDD) XXXXX-XXXX')
+                raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
             return digits
-        return value
-    
+        raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
 
 class ContactCreate(BaseModel):
     email: str
