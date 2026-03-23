@@ -1,0 +1,6 @@
+from ._base_class import BasePostgreSQLModel
+from .role import Role, RoleCreate, RoleUpdate
+from .address import Address
+from .contact import Contact
+from .authentication import Authentication
+from .user import User

@@ -1,0 +1,6 @@
+Finalizado autenticação
+
+finalizado CRUD de roles
+
+#TODO
+Implementar CRUD de Contato
