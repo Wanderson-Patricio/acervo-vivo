@@ -63,8 +63,9 @@ def create_role(
 
     controller = role_router_model.controller
     try:
-        new_role = Role(**new_role)
-        rowcount = controller.insert(new_role)
+        # Corrigindo a criação da instância de Role
+        new_role_instance = Role(**new_role.dict())
+        rowcount = controller.insert(new_role_instance)
         return {
             'message': 'Role created successfully',
             'affected_rows': rowcount
@@ -83,7 +84,9 @@ def update_role(
 
     controller = role_router_model.controller
     try:
-        rowcount = controller.update(id, **updated_fields)
+        # Usando exclude_unset para ignorar campos não enviados
+        update_data = updated_fields.dict(exclude_unset=True)
+        rowcount = controller.update(id, **update_data)
         if rowcount == 0:
             raise HTTPException(status_code=404, detail='Item not found')
         

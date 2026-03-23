@@ -31,6 +31,6 @@ class RoleCreate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
-    name: Optional[str]
-    access_level: Optional[int]
-    description: Optional[str]
+    name: Optional[str] = None
+    access_level: Optional[int] = None
+    description: Optional[str] = None
