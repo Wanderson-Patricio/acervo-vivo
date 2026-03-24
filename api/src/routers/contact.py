@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel
 
 from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
-from ..models import Contact, ContactCreate, ContactUpdate
+from ..models import Contact, ContactRead, ContactCreate, ContactUpdate
 from ..controllers import BaseController
 from ..models import User, Role
 from ..middlewares import get_current_user
@@ -14,12 +14,12 @@ contact_router_model = BaseRouterModel(Contact)
 user_controller = BaseController(User)
 role_controller = BaseController(Role)
 
-@contact_router_model.router.get('/', response_model=List[Contact])
+@contact_router_model.router.get('/', response_model=List[ContactRead])
 @require(RolesEnum.Viewer)
 def list_contacts(
         request: Request,
         current_user: Dict = Depends(get_current_user)
-    ) -> List[Contact]:
+    ) -> List[ContactRead]:
 
     query_params = dict(request.query_params)
     controller = contact_router_model.controller
@@ -41,15 +41,15 @@ def list_contacts(
 
     result = controller.list(**query_params)
 
-    return [data for data in result]
+    return [ContactRead(data) for data in result]
 
 
-@contact_router_model.router.get('/{id:int}', response_model=Contact)
+@contact_router_model.router.get('/{id:int}', response_model=ContactRead)
 @require(RolesEnum.Viewer)
 def get_contact(
     id: int,
     current_user: Dict = Depends(get_current_user)
-) -> Contact:
+) -> ContactRead:
 
     viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
     user_access_level = get_user_access_level(current_user)
@@ -65,7 +65,7 @@ def get_contact(
     data = controller.get_by_id(id)
     if not data:
         raise HTTPException(status_code=404, detail='Item not found')
-    return data
+    return ContactRead(data)
 
 class ContactCreateResponse(BaseModel):
     message: str

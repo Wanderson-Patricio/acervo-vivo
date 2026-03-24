@@ -1,6 +1,6 @@
-import json
+import os
 import bcrypt
-from typing import Dict
+from typing import Optional
 
 class CriptDict:
     @staticmethod
@@ -12,7 +12,9 @@ class CriptDict:
         return salt.encode('utf-8')
 
     @staticmethod
-    def hash_password(password: str, salt: bytes) -> str:
+    def hash_password(password: str, salt: Optional[bytes] = None) -> str:
+        if salt is None:
+            salt = CriptDict.to_bytes(os.environ.get('CRIPT_SALT'))
         hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
         return hashed.decode('utf-8')
 

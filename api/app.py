@@ -10,6 +10,8 @@ from src.routers import (
     role_router_model,
     contact_router_model,
     address_router_model,
+    authentication_router_model,
+    user_router_model,
     auth_router
 )
 
@@ -22,6 +24,10 @@ tags_metadata = [
     {
         "name": "Roles",
         "description": "Endpoints relacionados a papéis de usuário."
+    },
+    {
+        "name": "Users",
+        "description": "Endpoints relacionados a usuários."
     },
     {
         "name": "Contacts",
@@ -52,6 +58,8 @@ routers_to_include: list[APIRouter] = [
     role_router_model.router,
     contact_router_model.router,
     address_router_model.router,
+    authentication_router_model.router,
+    user_router_model.router,
     auth_router
 ]
 

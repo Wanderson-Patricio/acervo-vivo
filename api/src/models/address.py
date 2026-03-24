@@ -55,20 +55,30 @@ class Address(BasePostgreSQLModel):
             return f"{self.zip_code[:5]}-{self.zip_code[5:]}"
         return self.zip_code
     
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "street": self.street,
-            "number": self.number,
-            "complement": self.complement,
-            "neighbourhood": self.neighbourhood,
-            "city": self.city,
-            "state": self.state,
-            "country": self.country,
-            "zip_code": self.formatted_zip_code
-        }
 
+class AddressRead(BaseModel):
+    id: int
+    street: str
+    number: int
+    complement: Optional[str] = None
+    neighbourhood: str
+    city: str
+    state: str
+    country: str
+    zip_code: Optional[str] = None
 
+    def __init__(self, address: Address):
+        super().__init__(
+            id=address.id,
+            street=address.street,
+            number=address.number,
+            complement=address.complement,
+            neighbourhood=address.neighbourhood,
+            city=address.city,
+            state=address.state,
+            country=address.country,
+            zip_code=address.formatted_zip_code
+        )
 
 class AddressCreate(BaseModel):
     street: str

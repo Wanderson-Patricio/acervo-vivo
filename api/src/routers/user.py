@@ -1,0 +1,61 @@
+from fastapi import HTTPException, Request, Depends
+from typing import Any, Dict, List
+from pydantic import BaseModel
+
+from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
+from ..models import User, UserRead, UserCreate, UserUpdate
+from ..controllers import BaseController
+from ..models import Role
+from ..middlewares import get_current_user
+from ..middlewares.require import require, RolesEnum
+
+# Aqui está o "pulo do gato": injetamos a dependência no nível do Router.
+# Agora, QUALQUER rota definida neste arquivo exigirá o header Authorization.
+user_router_model = BaseRouterModel(User)
+role_controller = BaseController(Role)
+
+
+@user_router_model.router.get('/', response_model=List[UserRead])
+@require(role=RolesEnum.Viewer)
+def list_users(
+        request: Request,
+        current_user: Dict = Depends(get_current_user)
+    ) -> List[UserRead]:
+
+    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
+    user_access_level = get_user_access_level(current_user)
+
+    query_params = dict(request.query_params)
+    controller = user_router_model.controller
+
+    if user_access_level == viewer_access_level:
+        if query_params["id"] != str(current_user.get("user_id")):
+            raise DENIED_ACCESS_EXCEPTION
+        
+        query_params["id"] = current_user.get("user_id")
+
+    result = controller.list(**query_params)
+
+    return [UserRead(result_item) for result_item in result]
+
+
+@user_router_model.router.get('/{user_id:int}', response_model=UserRead)
+@require(role=RolesEnum.Viewer)
+def get_user_by_id(
+        user_id: int,
+        current_user: Dict = Depends(get_current_user)
+    ) -> UserRead:
+
+    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
+    user_access_level = get_user_access_level(current_user)
+
+    if user_access_level == viewer_access_level and user_id != current_user.get("user_id"):
+        raise DENIED_ACCESS_EXCEPTION
+
+    controller = user_router_model.controller
+    result = controller.get_by_id(user_id)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    return UserRead(result)

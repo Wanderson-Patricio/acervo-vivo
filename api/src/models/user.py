@@ -1,4 +1,6 @@
 from datetime import date, datetime
+from typing import Optional
+from pydantic import BaseModel
 
 from ._base_class import BasePostgreSQLModel
 
@@ -12,6 +14,25 @@ class User(BasePostgreSQLModel):
     contact_id: int
     role_id: int
     registration_timestamp: datetime
+
+    @property
+    def formatted_cpf(self) -> str:
+        cpf = ''.join(filter(str.isdigit, self.cpf))
+        return f"{cpf[:3]}.***.***-{cpf[9:]}"
+    
+    def as_dict(self):
+        """Método genérico para serializar o modelo."""
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "cpf": self.formatted_cpf,  # CPF formatado automaticamente
+            "birth_date": self.birth_date.isoformat() if self.birth_date else None,
+            "address_id": self.address_id,
+            "contact_id": self.contact_id,
+            "role_id": self.role_id,
+            "registration_timestamp": self.registration_timestamp.isoformat() if self.registration_timestamp else None
+        }
+        return data
 
     def name_validator(self, value: str):
         if (not value) or (not isinstance(value, str)):
@@ -56,3 +77,42 @@ class User(BasePostgreSQLModel):
     # def registration_timestamp_validator(self, value: datetime):
     #     if (not isinstance(value, datetime)) or (value > datetime.now()):
     #         raise ValueError("User 'registration_timestamp' must be a valid datetime in the past.")
+
+
+class UserRead(BaseModel):
+    id: int
+    name: str
+    cpf: str
+    birth_date: date
+    address_id: int
+    contact_id: int
+    role_id: int
+    registration_timestamp: datetime
+
+    def __init__(self, user: User):
+        super().__init__(
+            id=user.id,
+            name=user.name,
+            cpf=user.formatted_cpf,  # CPF formatado automaticamente
+            birth_date=user.birth_date,
+            address_id=user.address_id,
+            contact_id=user.contact_id,
+            role_id=user.role_id,
+            registration_timestamp=user.registration_timestamp
+        )
+
+class UserCreate(BaseModel):
+    name: str
+    cpf: str
+    birth_date: date
+    address_id: int
+    contact_id: int
+    role_id: int
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    cpf: Optional[str] = None
+    birth_date: Optional[date] = None
+    address_id: Optional[int] = None
+    contact_id: Optional[int] = None
+    role_id: Optional[int] = None

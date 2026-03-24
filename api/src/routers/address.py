@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel
 
 from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
-from ..models import Address, AddressCreate, AddressUpdate
+from ..models import Address, AddressRead, AddressCreate, AddressUpdate
 from ..controllers import BaseController
 from ..models import User, Role
 from ..middlewares import get_current_user
@@ -14,12 +14,12 @@ address_router_model = BaseRouterModel(Address)
 user_controller = BaseController(User)
 role_controller = BaseController(Role)
 
-@address_router_model.router.get('/', response_model=List[Address])
+@address_router_model.router.get('/', response_model=List[AddressRead])
 @require(RolesEnum.Viewer)
-def list_Addresss(
+def list_addresses(
         request: Request,
         current_user: Dict = Depends(get_current_user)
-    ) -> List[Address]:
+    ) -> List[AddressRead]:
 
     query_params = dict(request.query_params)
     controller = address_router_model.controller
@@ -41,15 +41,15 @@ def list_Addresss(
 
     result = controller.list(**query_params)
 
-    return [data for data in result]
+    return [AddressRead(data) for data in result]
 
 
-@address_router_model.router.get('/{id:int}', response_model=Address)
+@address_router_model.router.get('/{id:int}', response_model=AddressRead)
 @require(RolesEnum.Viewer)
-def get_Address(
+def get_address(
     id: int,
     current_user: Dict = Depends(get_current_user)
-) -> Address:
+) -> AddressRead:
 
     viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
     user_access_level = get_user_access_level(current_user)
@@ -65,7 +65,7 @@ def get_Address(
     data = controller.get_by_id(id)
     if not data:
         raise HTTPException(status_code=404, detail='Item not found')
-    return data
+    return AddressRead(data)
 
 class AddressCreateResponse(BaseModel):
     message: str

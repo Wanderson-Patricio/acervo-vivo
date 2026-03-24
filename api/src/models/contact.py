@@ -23,13 +23,7 @@ class Contact(BasePostgreSQLModel):
             elif len(digits) == 13:
                 return f"+{digits[0:2]} ({digits[2:4]}) {digits[4:9]}-{digits[9:]}"
         return self.phone_number
-    
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "phone_number": self.formatted_phone_number
-        }
+
 
     def email_validator(self, value: str) -> None:
         if value and not re.match(r'^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$', value):
@@ -44,6 +38,19 @@ class Contact(BasePostgreSQLModel):
                 raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
             return digits
         raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
+
+
+class ContactRead(BaseModel):
+    id: int
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+
+    def __init__(self, contact: Contact):
+        super().__init__(
+            id=contact.id,
+            email=contact.email,
+            phone_number=contact.formatted_phone_number
+        )
 
 class ContactCreate(BaseModel):
     email: str

@@ -1,3 +1,5 @@
+from base64 import b64decode
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..controllers import BaseController
@@ -5,11 +7,8 @@ from ..models import Authentication, Contact, User, Role
 from ..utils import CriptDict
 from ..middlewares import AuthJWT
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
 
-auth_router = APIRouter(prefix='/auth', tags=['Authentication'])
+auth_router = APIRouter(prefix='/authentication', tags=['Authentication'])
 INVALID_AUTH_EXC = HTTPException(status_code=401, detail='Email ou senha inválidos')
 
 # --- Funções Auxiliares ---
@@ -33,6 +32,10 @@ def verify_user_credentials(user_id: int, password: str) -> bool:
 
 # --- Endpoint Principal ---
 
+class LoginRequest(BaseModel):
+    email: str
+    password_bytes: bytes
+
 class AuthLoginResponse(BaseModel):
     message: str
     access_token: str
@@ -45,12 +48,20 @@ def login(request: LoginRequest) -> AuthLoginResponse:
         raise INVALID_AUTH_EXC
 
     # 2. Valida as credenciais
-    if not verify_user_credentials(user.id, request.password):
+    try:
+        password = b64decode(request.password_bytes).decode('utf-8')
+    except (AttributeError, UnicodeDecodeError):
+        raise INVALID_AUTH_EXC
+
+    if not verify_user_credentials(user.id, password):
         raise INVALID_AUTH_EXC
     
+    role = BaseController(Role).get_by_id(user.role_id)
+
     # 4. Gera o Token
     token = AuthJWT.create_access_token({
-        'user_id': user.id
+        'user_id': user.id,
+        'role': role.to_dict() if role else None
     })
 
     return AuthLoginResponse(

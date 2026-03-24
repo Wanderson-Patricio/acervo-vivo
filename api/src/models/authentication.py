@@ -1,4 +1,5 @@
 from datetime import datetime
+from pydantic import BaseModel
 
 from ._base_class import BasePostgreSQLModel
 
@@ -26,3 +27,12 @@ class Authentication(BasePostgreSQLModel):
     def is_blocked_validator(self, value: bool):
         if (not isinstance(value, bool)):
             raise ValueError("Authentication 'is_blocked' must be a boolean value.")
+        
+
+class AuthenticationCreate(BaseModel):
+    user_id: int
+    password_bytes: bytes
+
+class AuthenticationUpdate(BaseModel):
+    user_id: int
+    password_bytes: bytes
