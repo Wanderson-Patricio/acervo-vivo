@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List
+from typing import Dict, List
 from pydantic import BaseModel
+from datetime import datetime
 
 from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
 from ..models import User, UserRead, UserCreate, UserUpdate
@@ -59,3 +60,59 @@ def get_user_by_id(
         raise HTTPException(status_code=404, detail="User not found.")
     
     return UserRead(result)
+
+
+class UserCreateResponse(BaseModel):
+    message: str
+    user: UserCreate
+
+@user_router_model.router.post('/', response_model=UserCreateResponse)
+@require(role=RolesEnum.Admin)
+def create_user(
+        user_data: UserCreate
+    ) -> UserCreateResponse:
+
+    controller = user_router_model.controller
+    user = User(
+        name=user_data.name,
+        cpf=user_data.cpf,
+        birth_date=user_data.birth_date,
+        address_id=user_data.address_id,
+        contact_id=user_data.contact_id,
+        role_id=user_data.role_id,
+        registration_timestamp=datetime.now()
+    )
+
+    try:
+        controller.insert(user)
+
+        return UserCreateResponse(
+            message="User created successfully.",
+            user=user_data
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+class UserDeleteResponse(BaseModel):
+    message: str
+    affected_rows: int
+
+@user_router_model.router.delete('/{id:int}', response_model=UserDeleteResponse)
+@require(role=RolesEnum.Admin)
+def delete_user(
+        id: int,
+        current_user = Depends(get_current_user)
+    ) -> UserDeleteResponse:
+
+    controller = user_router_model.controller
+    affected_rows = controller.delete(id)
+
+    if affected_rows == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    return UserDeleteResponse(
+        message="User deleted successfully.",
+        affected_rows=affected_rows
+    )

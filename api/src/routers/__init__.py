@@ -6,3 +6,4 @@ from .authentication import authentication_router_model
 from .user import user_router_model
 
 from .auth import auth_router
+from .registration import registration_router

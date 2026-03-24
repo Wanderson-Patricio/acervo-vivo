@@ -72,7 +72,7 @@ class ContactCreateResponse(BaseModel):
     contact: ContactCreate
 
 @contact_router_model.router.post('/', response_model=ContactCreateResponse)
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Admin)
 def create_contact(
     new_contact: ContactCreate,
     current_user: Dict = Depends(get_current_user)

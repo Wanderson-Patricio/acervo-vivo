@@ -35,9 +35,9 @@ class Contact(BasePostgreSQLModel):
             digits = re.sub(r'\D', '', value)
             # Verifica se o número possui o formato correto (12 ou 13 dígitos)
             if not re.match(r'^\d{12,13}$', digits):
-                raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
-            return digits
-        raise ValueError('Phone number is required and must be in the format: +<country_code> (DDD) XXXXX-XXXX or 5588992519066')
+                raise ValueError('Phone number be in the format: +<country_code> (DDD) XXXXX-XXXX or XXXXXXXXXXXX')
+        else:
+            raise ValueError('Phone number is required.')
 
 
 class ContactRead(BaseModel):

@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter
 import uvicorn
 import os
 from dotenv import load_dotenv
-from typing import List, Dict
+from typing import Dict
 
 load_dotenv(".env", override=True)
 
@@ -12,34 +12,39 @@ from src.routers import (
     address_router_model,
     authentication_router_model,
     user_router_model,
-    auth_router
+    auth_router,
+    registration_router
 )
 
 
 tags_metadata = [
-    {
-        "name": "Authentication",
-        "description": "Endpoints relacionados à autenticação de usuários."
-    },
-    {
-        "name": "Roles",
-        "description": "Endpoints relacionados a papéis de usuário."
-    },
-    {
-        "name": "Users",
-        "description": "Endpoints relacionados a usuários."
-    },
-    {
-        "name": "Contacts",
-        "description": "Endpoints relacionados a contatos de usuários."
-    },
-    {
-        "name": "Addresses",
-        "description": "Endpoints relacionados a endereços de usuários."
-    }
+        {
+            "name": "Authentication",
+            "description": "Endpoints relacionados à autenticação de usuários."
+        },
+        {
+            "name": "Registration",
+            "description": "Endpoints relacionados ao registro de novos usuários."
+        },
+        {
+            "name": "Roles",
+            "description": "Endpoints relacionados a papéis de usuário."
+        },
+        {
+            "name": "Users",
+            "description": "Endpoints relacionados a usuários."
+        },
+        {
+            "name": "Contacts",
+            "description": "Endpoints relacionados a contatos de usuários."
+        },
+        {
+            "name": "Addresses",
+            "description": "Endpoints relacionados a endereços de usuários."
+        }
 ]
 
-app: FastAPI = FastAPI(
+app = FastAPI(
     title="Acervo Vivo API",
     description="API para gerenciar o acervo vivo, incluindo usuários, papéis e permissões.",
     version="1.0.0",
@@ -60,7 +65,8 @@ routers_to_include: list[APIRouter] = [
     address_router_model.router,
     authentication_router_model.router,
     user_router_model.router,
-    auth_router
+    auth_router,
+    registration_router
 ]
 
 for rout in routers_to_include:

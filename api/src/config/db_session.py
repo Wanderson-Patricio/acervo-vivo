@@ -224,4 +224,10 @@ class QueryExecutor:
             return result[0] if not options.get_all and result else result
 
         self.conn.commit()
+
+        if options.method in ["INSERT", "UPDATE"]:
+            # Retorna o ID do modelo inserido ou atualizado
+            cursor.execute("SELECT LASTVAL();")
+            return cursor.fetchone()[0]
+
         return cursor.rowcount

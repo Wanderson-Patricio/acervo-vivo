@@ -72,7 +72,7 @@ class AddressCreateResponse(BaseModel):
     address: AddressCreate
 
 @address_router_model.router.post('/', response_model=AddressCreateResponse)
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Admin)
 def create_Address(
     new_Address: AddressCreate,
     current_user: Dict = Depends(get_current_user)
