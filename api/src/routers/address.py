@@ -2,7 +2,7 @@ from fastapi import HTTPException, Request, Depends
 from typing import Any, Dict, List
 from pydantic import BaseModel
 
-from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
+from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level, get_role_access_level
 from ..models import Address, AddressRead, AddressCreate, AddressUpdate
 from ..controllers import BaseController
 from ..models import User, Role
@@ -44,7 +44,7 @@ def get_address(
 
         user = user_controller.get_by_id(user_id)
         if user and user.address_id != id:
-            raise DENIED_ACCESS_EXCEPTION
+            raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = address_router_model.controller
     data = controller.get_by_id(id)
@@ -97,7 +97,7 @@ def update_Address(
 
         user = user_controller.get_by_id(user_id)
         if user and user.address_id != id:
-            raise DENIED_ACCESS_EXCEPTION
+            raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = address_router_model.controller
     try:

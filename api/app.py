@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter
 import uvicorn
 import os
 from dotenv import load_dotenv
-from typing import Dict
+from typing import Dict, Union
 
 load_dotenv(".env", override=True)
 
@@ -73,9 +73,14 @@ for rout in routers_to_include:
     app.include_router(rout)
 
 
-@app.get('/', tags=['Root'])
-def hello() -> Dict[str, str]:
-    return {'message': 'Hello, World!'}
+@app.get('/', tags=['Root'], response_model=Dict[str, Union[str, Dict[str, str]]])
+def project_info() -> Dict[str, Union[str, Dict[str, str]]]:
+    return {
+        'project_name': app.title,
+        'maintainer': app.contact,
+        'documentation_url': f"http://{os.environ.get('API_HOST')}:{os.environ.get('API_PORT')}/docs",
+        'description': app.description
+    }
 
 
 def main() -> None:

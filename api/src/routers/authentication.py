@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel, ValidationError
 from base64 import b64decode
 
-from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION
+from ._base_router import BaseRouterModel, AccessDeniedException
 from ..models import Authentication, AuthenticationCreate, AuthenticationUpdate
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
@@ -25,7 +25,7 @@ def create_authentication(
     ) -> AuthenticationCreateResponse:
 
     if new_authentication.user_id != current_user.get("user_id"):
-        raise DENIED_ACCESS_EXCEPTION
+        raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = authentication_router_model.controller
     if controller.list(user_id=new_authentication.user_id):
@@ -64,7 +64,7 @@ def update_authentication(
     ) -> AuthenticationUpdateResponse:
 
     if updated_authentication.user_id != current_user.get("user_id"):
-        raise DENIED_ACCESS_EXCEPTION
+        raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = authentication_router_model.controller
 
@@ -105,4 +105,7 @@ def delete_authentication(
     if rowcount == 0:
         raise HTTPException(status_code=404, detail="Authentication not found.")
     
-    return AuthenticationDeleteResponse(message=f"Authentication deleted successfully", affected_rows=rowcount)
+    return AuthenticationDeleteResponse(
+        message=f"Authentication of id {id} deleted successfully", 
+        affected_rows=rowcount
+    )

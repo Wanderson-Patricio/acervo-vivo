@@ -2,7 +2,7 @@ from fastapi import HTTPException, Request, Depends
 from typing import Any, Dict, List
 from pydantic import BaseModel
 
-from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level
+from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level
 from ..models import Role, RoleCreate, RoleUpdate
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
@@ -37,7 +37,7 @@ def get_by_id(
     user_role = Role(**current_user.get("role"))
 
     if user_role.name == RolesEnum.Viewer and user_role.id != id:
-        raise DENIED_ACCESS_EXCEPTION
+        raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = role_router_model.controller
     data = controller.get_by_id(id)

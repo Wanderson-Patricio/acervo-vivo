@@ -3,7 +3,7 @@ from typing import Dict, List
 from pydantic import BaseModel
 from datetime import datetime
 
-from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
+from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level, get_role_access_level
 from ..models import User, UserRead, UserCreate, UserUpdate
 from ..controllers import BaseController
 from ..models import Role
@@ -42,7 +42,7 @@ def get_user_by_id(
     user_access_level = get_user_access_level(current_user)
 
     if user_access_level == viewer_access_level and user_id != current_user.get("user_id"):
-        raise DENIED_ACCESS_EXCEPTION
+        raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = user_router_model.controller
     result = controller.get_by_id(user_id)
@@ -102,7 +102,7 @@ def update_user(
     user_access_level = get_user_access_level(current_user)
 
     if user_access_level == viewer_access_level and user_id != current_user.get("user_id"):
-        raise DENIED_ACCESS_EXCEPTION
+        raise AccessDeniedException(RolesEnum.Viewer)
 
     controller = user_router_model.controller
     affected_rows = controller.update(user_id, **user_data.dict())
@@ -134,6 +134,6 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found.")
     
     return UserDeleteResponse(
-        message="User deleted successfully.",
+        message=f"User of id {id} deleted successfully.",
         affected_rows=affected_rows
     )

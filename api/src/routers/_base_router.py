@@ -5,6 +5,11 @@ from fastapi import APIRouter, HTTPException
 from ..controllers import BaseController
 from ..models import BasePostgreSQLModel
 
+class AccessDeniedException(HTTPException):
+    def __init__(self, role: str):
+        super().__init__(status_code=403, detail=f"Acesso negado. Papel '{role}' exigido.")
+
+
 class BaseRouterModel:
     def __init__(self, model: BasePostgreSQLModel):
         self.model = model
@@ -24,9 +29,6 @@ class BaseRouterModel:
 
         return router
     
-
-DENIED_ACCESS_EXCEPTION = HTTPException(status_code=403, detail='Acesso negado: nível de acesso insuficiente.')
-
 
 def get_user_access_level(current_user: Dict) -> int:
     """Função auxiliar para obter o nível de acesso do usuário atual."""

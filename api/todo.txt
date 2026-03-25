@@ -1,6 +1,3 @@
-Finalizado autenticação
-
-finalizado CRUD de roles, contacts, addresses
-
-# TODO
-Implementar CRUD de authentication
+# Incrementar rotina de deleção
+Somente Admins podem deletar usuários.
+Aprimorar mensagens de reotrno.
