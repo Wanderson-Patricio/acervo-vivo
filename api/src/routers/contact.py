@@ -52,28 +52,6 @@ def get_contact(
         raise HTTPException(status_code=404, detail='Item not found')
     return ContactRead(data)
 
-class ContactCreateResponse(BaseModel):
-    message: str
-    contact: ContactCreate
-
-@contact_router_model.router.post('/', response_model=ContactCreateResponse)
-@require(RolesEnum.Admin)
-def create_contact(
-    new_contact: ContactCreate,
-    current_user: Dict = Depends(get_current_user)
-) -> ContactCreateResponse:
-
-    controller = contact_router_model.controller
-    try:
-        # Corrigindo a criação da instância de Contact
-        new_contact_instance = Contact(**new_contact.dict())
-        controller.insert(new_contact_instance)
-        return ContactCreateResponse(
-            message='Contact created successfully',
-            contact=new_contact
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
     
 class ContactUpdateResponse(BaseModel):
     message: str

@@ -1,3 +1,0 @@
-# Incrementar rotina de deleção
-Somente Admins podem deletar usuários.
-Aprimorar mensagens de reotrno.

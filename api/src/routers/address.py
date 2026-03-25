@@ -52,30 +52,6 @@ def get_address(
         raise HTTPException(status_code=404, detail='Item not found')
     return AddressRead(data)
 
-
-
-class AddressCreateResponse(BaseModel):
-    message: str
-    address: AddressCreate
-
-@address_router_model.router.post('/', response_model=AddressCreateResponse)
-@require(RolesEnum.Admin)
-def create_Address(
-    new_Address: AddressCreate,
-    current_user: Dict = Depends(get_current_user)
-) -> AddressCreateResponse:
-
-    controller = address_router_model.controller
-    try:
-        # Corrigindo a criação da instância de Address
-        new_Address_instance = Address(**new_Address.dict())
-        controller.insert(new_Address_instance)
-        return AddressCreateResponse(
-            message='Address created successfully',
-            address=new_Address
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
     
 class AddressUpdateResponse(BaseModel):
     message: str

@@ -53,39 +53,6 @@ def get_user_by_id(
     return UserRead(result)
 
 
-class UserCreateResponse(BaseModel):
-    message: str
-    user: UserCreate
-
-@user_router_model.router.post('/', response_model=UserCreateResponse)
-@require(role=RolesEnum.Admin)
-def create_user(
-        user_data: UserCreate
-    ) -> UserCreateResponse:
-
-    controller = user_router_model.controller
-    user = User(
-        name=user_data.name,
-        cpf=user_data.cpf,
-        birth_date=user_data.birth_date,
-        address_id=user_data.address_id,
-        contact_id=user_data.contact_id,
-        role_id=user_data.role_id,
-        registration_timestamp=datetime.now()
-    )
-
-    try:
-        controller.insert(user)
-
-        return UserCreateResponse(
-            message="User created successfully.",
-            user=user_data
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
-
 class UserUpdateResponse(BaseModel):
     message: str
     user: UserUpdate

@@ -12,46 +12,6 @@ from ..utils import CriptDict
 
 authentication_router_model = BaseRouterModel(Authentication)
 
-
-class AuthenticationCreateResponse(BaseModel):
-    message: str
-    affected_rows: int
-
-@authentication_router_model.router.post('/', response_model=AuthenticationCreateResponse)
-@require(RolesEnum.Viewer)
-def create_authentication(
-        new_authentication: AuthenticationCreate,
-        current_user: Dict = Depends(get_current_user)
-    ) -> AuthenticationCreateResponse:
-
-    if new_authentication.user_id != current_user.get("user_id"):
-        raise AccessDeniedException(RolesEnum.Viewer)
-
-    controller = authentication_router_model.controller
-    if controller.list(user_id=new_authentication.user_id):
-        raise HTTPException(status_code=400, detail="Authentication for this user already exists.")
-    
-    try:
-        # Validar se password_bytes é uma string binária válida
-        password = b64decode(new_authentication.password_bytes).decode('utf-8')
-    except (AttributeError, UnicodeDecodeError):
-        raise HTTPException(status_code=400, detail="Invalid binary password format.")
-
-    authentication_to_insert = Authentication(
-        user_id=new_authentication.user_id,
-        hash_password=CriptDict.hash_password(password),
-        last_time_altered=datetime.utcnow(),
-        is_blocked=False
-    )
-    
-    rowcount = controller.insert(authentication_to_insert)
-
-    if rowcount == 0:
-        raise HTTPException(status_code=400, detail="Failed to create authentication.")
-    
-    return AuthenticationCreateResponse(message=f"Authentication created successfully", affected_rows=rowcount)
-
-
 class AuthenticationUpdateResponse(BaseModel):
     message: str
     affected_rows: int
