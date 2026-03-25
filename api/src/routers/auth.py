@@ -65,6 +65,6 @@ def login(request: LoginRequest) -> AuthLoginResponse:
     })
 
     return AuthLoginResponse(
-        message='Login successful',
+        message=f"Login successful for user '{user.name}'",
         access_token=token
     )

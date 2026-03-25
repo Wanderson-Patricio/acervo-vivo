@@ -15,7 +15,7 @@ user_controller = BaseController(User)
 role_controller = BaseController(Role)
 
 @contact_router_model.router.get('/', response_model=List[ContactRead])
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Analyst)
 def list_contacts(
         request: Request,
         current_user: Dict = Depends(get_current_user)
@@ -23,21 +23,6 @@ def list_contacts(
 
     query_params = dict(request.query_params)
     controller = contact_router_model.controller
-    
-    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
-    user_access_level = get_user_access_level(current_user)
-
-    if user_access_level == viewer_access_level:
-        user_id = current_user.get("user_id")
-
-        user = user_controller.get_by_id(user_id)
-        if user and user.contact_id:
-            contact_id = user.contact_id
-
-        if query_params.get("id") and int(query_params["id"]) != contact_id:
-            raise DENIED_ACCESS_EXCEPTION
-        
-        query_params["id"] = contact_id
 
     result = controller.list(**query_params)
 

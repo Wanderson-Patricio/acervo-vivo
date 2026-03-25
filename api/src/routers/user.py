@@ -17,23 +17,14 @@ role_controller = BaseController(Role)
 
 
 @user_router_model.router.get('/', response_model=List[UserRead])
-@require(role=RolesEnum.Viewer)
+@require(role=RolesEnum.Analyst)
 def list_users(
         request: Request,
         current_user: Dict = Depends(get_current_user)
     ) -> List[UserRead]:
 
-    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
-    user_access_level = get_user_access_level(current_user)
-
     query_params = dict(request.query_params)
     controller = user_router_model.controller
-
-    if user_access_level == viewer_access_level:
-        if query_params["id"] != str(current_user.get("user_id")):
-            raise DENIED_ACCESS_EXCEPTION
-        
-        query_params["id"] = current_user.get("user_id")
 
     result = controller.list(**query_params)
 
@@ -93,6 +84,36 @@ def create_user(
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+class UserUpdateResponse(BaseModel):
+    message: str
+    user: UserUpdate
+
+@user_router_model.router.put('/{user_id:int}', response_model=UserUpdateResponse)
+@require(role=RolesEnum.Viewer)
+def update_user(
+        user_id: int,
+        user_data: UserUpdate,
+        current_user: Dict = Depends(get_current_user)
+    ) -> UserUpdateResponse:
+
+    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
+    user_access_level = get_user_access_level(current_user)
+
+    if user_access_level == viewer_access_level and user_id != current_user.get("user_id"):
+        raise DENIED_ACCESS_EXCEPTION
+
+    controller = user_router_model.controller
+    affected_rows = controller.update(user_id, **user_data.dict())
+
+    if affected_rows == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    return UserUpdateResponse(
+        message="User updated successfully.",
+        user=user_data
+    )
     
 
 class UserDeleteResponse(BaseModel):

@@ -1,74 +1,138 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
-from typing import Dict, List
-from pydantic import BaseModel
-from datetime import datetime
+from base64 import b64decode
 
-from ._base_router import BaseRouterModel, DENIED_ACCESS_EXCEPTION, get_user_access_level, get_role_access_level
-from ..models import UserCreate, ContactCreate, AddressCreate
-from ..models import User, Contact, Address
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from datetime import datetime, date
+
+from ..models import UserCreate, ContactCreate, AddressCreate, AuthenticationCreate
+from ..models import User, Contact, Address, Authentication
 from ..controllers import BaseController
 from ..models import Role
-from ..middlewares import get_current_user
-from ..middlewares.require import require, RolesEnum
+from ..middlewares.require import RolesEnum
+from ..utils import CriptDict
 
 registration_router = APIRouter(prefix="/registration", tags=["Registration"])
 
 
+class UserCreateNonContactAddress(BaseModel):
+    name: str
+    cpf: str
+    birth_date: date
+
 class UserCreateRequest(BaseModel):
-    user: UserCreate
+    user: UserCreateNonContactAddress
     contact: ContactCreate
     address: AddressCreate
+    password_bytes: str
+
 
 class UserCreateResponse(BaseModel):
     message: str
-    user: UserCreateRequest
+    user_name: str
+    user_id: int
 
-@registration_router.post('/', response_model=UserCreateResponse)
-def register_user(
-        registration_data: UserCreateRequest
+def register_contact(contact_data: ContactCreate) -> int:
+    
+    contact_controller = BaseController(Contact)
+    contact = Contact(
+        phone_number=contact_data.phone_number,
+        email=contact_data.email
+    )
+
+    return contact_controller.insert(contact)
+
+def register_address(address_data: AddressCreate) -> int:
+    
+    address_controller = BaseController(Address)
+    address = Address(
+        street=address_data.street,
+        number=address_data.number,
+        complement=address_data.complement,
+        neighbourhood=address_data.neighbourhood,
+        city=address_data.city,
+        state=address_data.state,
+        country=address_data.country,
+        zip_code=address_data.zip_code
+    )
+
+    return address_controller.insert(address)
+
+
+def verify_user_exists(cpf: str, user_controller: BaseController) -> bool:
+    existing_users = user_controller.list(cpf=cpf)
+    return len(existing_users) > 0
+
+def register_user_in_db(
+        user_data: UserCreate,
+        contact_id: int,
+        address_id: int
     ) -> UserCreateResponse:
 
     user_controller = BaseController(User)
-    contact_controller = BaseController(Contact)
-    address_controller = BaseController(Address)
     role_controller = BaseController(Role)
-
-    # Criar contato
-    contact = Contact(
-        phone_number=registration_data.contact.phone_number,
-        email=registration_data.contact.email
-    )
-
-    contact_id = contact_controller.insert(contact)
-
-    # Criar endereço
-    address = Address(
-        street=registration_data.address.street,
-        number=registration_data.address.number,
-        complement=registration_data.address.complement,
-        neighbourhood=registration_data.address.neighbourhood,
-        city=registration_data.address.city,
-        state=registration_data.address.state,
-        country=registration_data.address.country,
-        zip_code=registration_data.address.zip_code
-    )
-    address_id = address_controller.insert(address)
 
     role_id = role_controller.list(name=RolesEnum.Viewer)[0].id
 
     user = User(
-        name=registration_data.user.name,
-        cpf=registration_data.user.cpf,
-        birth_date=registration_data.user.birth_date,
+        name=user_data.name,
+        cpf=user_data.cpf,
+        birth_date=user_data.birth_date,
         address_id=address_id,
         contact_id=contact_id,
         role_id=role_id,
         registration_timestamp=datetime.now()
     )
 
-    user_controller.insert(user)
+    return user_controller.insert(user)
+
+
+def register_authentication(
+        authentication_data: AuthenticationCreate,
+    ) -> None:
+
+    authentication_controller = BaseController(Authentication)
+
+    try:
+        # Validar se password_bytes é uma string binária válida
+        password = b64decode(authentication_data.password_bytes).decode('utf-8')
+    except (AttributeError, UnicodeDecodeError):
+        raise HTTPException(status_code=400, detail="Invalid binary password format.")
+
+    authentication = Authentication(
+        user_id=authentication_data.user_id,
+        hash_password=CriptDict.hash_password(password),
+        last_time_altered=datetime.utcnow(),
+        is_blocked=False
+    )
+
+    authentication_controller.insert(authentication)
+
+
+@registration_router.post('/', response_model=UserCreateResponse)
+def register_user(
+        registration_data: UserCreateRequest
+    ) -> UserCreateResponse:
+
+    if verify_user_exists(registration_data.user.cpf, BaseController(User)):
+        raise HTTPException(status_code=400, detail="User with this CPF already exists.")
+
+    # Criar contato
+    contact_id = register_contact(registration_data.contact)
+
+    # Criar endereço
+    address_id = register_address(registration_data.address)
+
+    user_id = register_user_in_db(registration_data.user, contact_id, address_id)
+
+    register_authentication(
+        AuthenticationCreate(
+            user_id=user_id,
+            password_bytes=registration_data.password_bytes
+        )
+    )
 
     return UserCreateResponse(
-        message=f"User registered successfully.{contact_id=}, {address_id=}",
-        user=registration_data
+        message=f"User registered successfully.",
+        user_name=registration_data.user.name,
+        user_id=user_id
     )

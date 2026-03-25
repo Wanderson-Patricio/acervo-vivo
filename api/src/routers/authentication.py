@@ -92,7 +92,7 @@ class AuthenticationDeleteResponse(BaseModel):
     affected_rows: int
 
 @authentication_router_model.router.delete('/', response_model=AuthenticationDeleteResponse)
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Admin)
 def delete_authentication(
         id: int,
         current_user: Dict = Depends(get_current_user)

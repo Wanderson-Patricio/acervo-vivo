@@ -15,7 +15,7 @@ user_controller = BaseController(User)
 role_controller = BaseController(Role)
 
 @address_router_model.router.get('/', response_model=List[AddressRead])
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Analyst)
 def list_addresses(
         request: Request,
         current_user: Dict = Depends(get_current_user)
@@ -23,21 +23,6 @@ def list_addresses(
 
     query_params = dict(request.query_params)
     controller = address_router_model.controller
-    
-    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
-    user_access_level = get_user_access_level(current_user)
-
-    if user_access_level == viewer_access_level:
-        user_id = current_user.get("user_id")
-
-        user = user_controller.get_by_id(user_id)
-        if user and user.address_id:
-            address_id = user.address_id
-
-        if query_params.get("id") and int(query_params["id"]) != address_id:
-            raise DENIED_ACCESS_EXCEPTION
-        
-        query_params["id"] = address_id
 
     result = controller.list(**query_params)
 
@@ -66,6 +51,8 @@ def get_address(
     if not data:
         raise HTTPException(status_code=404, detail='Item not found')
     return AddressRead(data)
+
+
 
 class AddressCreateResponse(BaseModel):
     message: str
@@ -131,21 +118,11 @@ class AddressDeleteResponse(BaseModel):
     affected_rows: int
 
 @address_router_model.router.delete('/{id:int}', response_model=AddressDeleteResponse)
-@require(RolesEnum.Viewer)
+@require(RolesEnum.Admin)
 def delete_Address(
     id: int,
     current_user: Dict = Depends(get_current_user)
 ) -> AddressDeleteResponse:
-    
-    viewer_access_level = get_role_access_level(RolesEnum.Viewer, role_controller)
-    user_access_level = get_user_access_level(current_user)
-
-    if user_access_level == viewer_access_level:
-        user_id = current_user.get("user_id")
-
-        user = user_controller.get_by_id(user_id)
-        if user and user.address_id != id:
-            raise DENIED_ACCESS_EXCEPTION
 
     controller = address_router_model.controller
     try:
