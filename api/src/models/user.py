@@ -115,4 +115,6 @@ class UserUpdate(BaseModel):
     birth_date: Optional[date] = None
     address_id: Optional[int] = None
     contact_id: Optional[int] = None
-    role_id: Optional[int] = None
+
+class UserRoleUpdate(BaseModel):
+    role_id: int

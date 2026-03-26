@@ -1,14 +1,9 @@
 from typing import Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from ..controllers import BaseController
 from ..models import BasePostgreSQLModel
-
-class AccessDeniedException(HTTPException):
-    def __init__(self, role: str):
-        super().__init__(status_code=403, detail=f"Acesso negado. Papel '{role}' exigido.")
-
 
 class BaseRouterModel:
     def __init__(self, model: BasePostgreSQLModel):

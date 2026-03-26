@@ -1,13 +1,14 @@
 from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List
+from typing import Dict, List
 from pydantic import BaseModel
 
-from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level, get_role_access_level
-from ..models import Address, AddressRead, AddressCreate, AddressUpdate
+from ._base_router import BaseRouterModel, get_user_access_level, get_role_access_level
+from ..models import Address, AddressRead, AddressUpdate
 from ..controllers import BaseController
 from ..models import User, Role
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
+from ..errors import NotFoundException, NotAuthorizedException
 
 address_router_model = BaseRouterModel(Address)
 
@@ -44,12 +45,12 @@ def get_address(
 
         user = user_controller.get_by_id(user_id)
         if user and user.address_id != id:
-            raise AccessDeniedException(RolesEnum.Viewer)
+            raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only view their own address")
 
     controller = address_router_model.controller
     data = controller.get_by_id(id)
     if not data:
-        raise HTTPException(status_code=404, detail='Item not found')
+        raise NotFoundException()
     return AddressRead(data)
 
     
@@ -73,14 +74,14 @@ def update_Address(
 
         user = user_controller.get_by_id(user_id)
         if user and user.address_id != id:
-            raise AccessDeniedException(RolesEnum.Viewer)
+            raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only update their own address")
 
     controller = address_router_model.controller
     try:
         update_data = updated_Address.dict(exclude_unset=True)
         rowcount = controller.update(id, **update_data)
         if rowcount == 0:
-            raise HTTPException(status_code=404, detail='Item not found')
+            raise NotFoundException()
         
         return AddressUpdateResponse(
             message=f'Address of id {id} updated successfully',
@@ -104,7 +105,7 @@ def delete_Address(
     try:
         rowcount = controller.delete(id)
         if rowcount == 0:
-            raise HTTPException(status_code=404, detail='Item not found')
+            raise NotFoundException()
         
         return AddressDeleteResponse(
             message=f'Address of id {id} deleted successfully',

@@ -1,14 +1,15 @@
 from datetime import datetime
-from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List
-from pydantic import BaseModel, ValidationError
+from fastapi import Depends
+from typing import Dict
+from pydantic import BaseModel
 from base64 import b64decode
 
-from ._base_router import BaseRouterModel, AccessDeniedException
-from ..models import Authentication, AuthenticationCreate, AuthenticationUpdate
+from ._base_router import BaseRouterModel
+from ..models import Authentication, AuthenticationUpdate
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
 from ..utils import CriptDict
+from ..errors import NotAuthenticatedException, NotAuthorizedException, NotFoundException
 
 authentication_router_model = BaseRouterModel(Authentication)
 
@@ -24,25 +25,22 @@ def update_authentication(
     ) -> AuthenticationUpdateResponse:
 
     if updated_authentication.user_id != current_user.get("user_id"):
-        raise AccessDeniedException(RolesEnum.Viewer)
+        raise NotAuthorizedException(detail=f"Access denied: users can only update their own authentication")
 
     controller = authentication_router_model.controller
 
     update_data = updated_authentication.dict(exclude_unset=True)
 
-    # Tratar atualização de senha
-    if "password_bytes" in update_data:
-        try:
-            password = b64decode(update_data.pop("password_bytes")).decode('utf-8')
-            print(password, end='\n' * 10)
-            update_data["hash_password"] = CriptDict.hash_password(password)
-        except (AttributeError, UnicodeDecodeError):
-            raise HTTPException(status_code=400, detail="Invalid binary password format.")
-
+    password = update_data.pop("password")
+    update_data["hash_password"] = CriptDict.hash_password(password)
+    update_data["last_time_altered"] = datetime.utcnow()
+    update_data["is_blocked"] = False # Desbloqueia a conta ao alterar a senha
+    update_data["failed_attempts"] = 0 # Reseta as tentativas falhas ao alterar a senha
+        
     rowcount = controller.update(updated_authentication.user_id, **update_data)
 
     if rowcount == 0:
-        raise HTTPException(status_code=404, detail="Authentication not found.")
+        raise NotFoundException(Authentication, updated_authentication.user_id)
     
     return AuthenticationUpdateResponse(message=f"Authentication updated successfully", affected_rows=rowcount)
 
@@ -63,9 +61,13 @@ def delete_authentication(
     rowcount = controller.delete(id)
 
     if rowcount == 0:
-        raise HTTPException(status_code=404, detail="Authentication not found.")
+        raise NotFoundException(Authentication, id)
     
     return AuthenticationDeleteResponse(
         message=f"Authentication of id {id} deleted successfully", 
         affected_rows=rowcount
     )
+
+
+class AuthenticationBlockResponse(BaseModel):
+    message: str

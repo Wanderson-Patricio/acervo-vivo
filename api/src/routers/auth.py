@@ -1,15 +1,18 @@
 from base64 import b64decode
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 from ..controllers import BaseController
 from ..models import Authentication, Contact, User, Role
 from ..utils import CriptDict
 from ..middlewares import AuthJWT
+from ..errors import NotAuthenticatedException
 
 
 auth_router = APIRouter(prefix='/authentication', tags=['Authentication'])
-INVALID_AUTH_EXC = HTTPException(status_code=401, detail='Email ou senha inválidos')
+INVALID_AUTH_EXC = NotAuthenticatedException(detail='Email ou senha inválidos')
+
+MAXIMUM_RETRIES = 5
 
 # --- Funções Auxiliares ---
 
@@ -34,7 +37,7 @@ def verify_user_credentials(user_id: int, password: str) -> bool:
 
 class LoginRequest(BaseModel):
     email: str
-    password_bytes: bytes
+    password: str
 
 class AuthLoginResponse(BaseModel):
     message: str
@@ -47,15 +50,28 @@ def login(request: LoginRequest) -> AuthLoginResponse:
     if not user:
         raise INVALID_AUTH_EXC
 
-    # 2. Valida as credenciais
-    try:
-        password = b64decode(request.password_bytes).decode('utf-8')
-    except (AttributeError, UnicodeDecodeError):
-        raise INVALID_AUTH_EXC
+    password = request.password
+
+    auth_controller = BaseController(Authentication)
+    auth_records = auth_controller.list(user_id=user.id)[0]
+    auth_controller.db_session.reset_options()
+
+    if auth_records.is_blocked:
+        raise NotAuthenticatedException(detail="Account is blocked due to multiple failed login attempts. Please contact support.")
 
     if not verify_user_credentials(user.id, password):
-        raise INVALID_AUTH_EXC
+        update_data = {"failed_attempts": auth_records.failed_attempts + 1}
+        if auth_records.failed_attempts >= MAXIMUM_RETRIES - 1:
+            update_data["is_blocked"] = True
+
+        print(auth_controller.db_session.options, end='\n' * 10)
+        auth_controller.update(auth_records.id, **update_data)
+        auth_controller.db_session.reset_options()
+
+
+        raise NotAuthenticatedException(detail=f"Invalid credentials. {MAXIMUM_RETRIES - auth_records.failed_attempts - 1} attempts remaining before account is blocked.")
     
+    auth_controller.update(auth_records.id, failed_attempts=0, is_blocked=False)
     role = BaseController(Role).get_by_id(user.role_id)
 
     # 4. Gera o Token

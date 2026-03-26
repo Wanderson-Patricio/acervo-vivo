@@ -1,10 +1,11 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from functools import wraps
 from enum import StrEnum
 
 from ..middlewares import get_current_user
 from ..routers import BaseRouterModel
 from ..models import Role
+from ..errors import NotAuthorizedException
 
 class RolesEnum(StrEnum):
     Admin = "Admin"
@@ -32,10 +33,7 @@ def require(role: RolesEnum):
             user_level = int(current_user.get("role", {}).get("access_level", 0))
 
             if user_level < required_level:
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Acesso negado. Papel '{role}' exigido."
-                )
+                raise NotAuthorizedException(detail=f"Access denied: {role} role required")
 
             # Continua para a rota original
             return func(*args, current_user=current_user, **kwargs)

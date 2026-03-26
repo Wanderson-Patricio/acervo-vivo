@@ -53,6 +53,17 @@ class PostgreSQLSession:
             update_set_clauses=[]
         )
 
+    def reset_options(self):
+        self.options.filters = []
+        self.options.order_by = None
+        self.options.limit = None
+        self.options.offset = None
+        self.options.method = None
+        self.options.parameters = []
+        self.options.get_all = None
+        self.options.to_model = False
+        self.options.update_set_clauses = []
+
     def select(self):
         self.options.method = "SELECT"
         return self
@@ -225,7 +236,7 @@ class QueryExecutor:
 
         self.conn.commit()
 
-        if options.method in ["INSERT", "UPDATE"]:
+        if options.method in ["INSERT"]:
             # Retorna o ID do modelo inserido ou atualizado
             cursor.execute("SELECT LASTVAL();")
             return cursor.fetchone()[0]

@@ -2,6 +2,8 @@ import os
 import jwt
 from datetime import datetime, timedelta
 
+from ..errors import NotAuthenticatedException
+
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 SALT = os.getenv("JWT_SALT_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -23,7 +25,5 @@ class AuthJWT:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
-        except jwt.ExpiredSignatureError:
-            raise ValueError("Token expirado.")
-        except jwt.InvalidTokenError:
-            raise ValueError("Token inválido.")
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            raise NotAuthenticatedException()

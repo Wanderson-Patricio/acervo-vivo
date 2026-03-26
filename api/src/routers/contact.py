@@ -1,13 +1,14 @@
 from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List
+from typing import Dict, List
 from pydantic import BaseModel
 
-from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level, get_role_access_level
-from ..models import Contact, ContactRead, ContactCreate, ContactUpdate
+from ._base_router import BaseRouterModel, get_user_access_level, get_role_access_level
+from ..models import Contact, ContactRead, ContactUpdate
 from ..controllers import BaseController
 from ..models import User, Role
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
+from ..errors import NotAuthorizedException, NotFoundException
 
 contact_router_model = BaseRouterModel(Contact)
 
@@ -44,12 +45,12 @@ def get_contact(
 
         user = user_controller.get_by_id(user_id)
         if user and user.contact_id != id:
-            raise AccessDeniedException(RolesEnum.Viewer)
+            raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only view their own contact")
 
     controller = contact_router_model.controller
     data = controller.get_by_id(id)
     if not data:
-        raise HTTPException(status_code=404, detail='Item not found')
+        raise NotFoundException(Contact, id)
     return ContactRead(data)
 
     
@@ -73,14 +74,14 @@ def update_contact(
 
         user = user_controller.get_by_id(user_id)
         if user and user.contact_id != id:
-            raise AccessDeniedException(RolesEnum.Viewer)
+            raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only update their own contact")
 
     controller = contact_router_model.controller
     try:
         update_data = updated_contact.dict(exclude_unset=True)
         rowcount = controller.update(id, **update_data)
         if rowcount == 0:
-            raise HTTPException(status_code=404, detail='Item not found')
+            raise NotFoundException(Contact, id)
         
         return ContactUpdateResponse(
             message=f'Contact of id {id} updated successfully',
@@ -108,13 +109,13 @@ def delete_contact(
 
         user = user_controller.get_by_id(user_id)
         if user and user.contact_id != id:
-            raise AccessDeniedException(RolesEnum.Viewer)
+            raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only delete their own contact")
 
     controller = contact_router_model.controller
     try:
         rowcount = controller.delete(id)
         if rowcount == 0:
-            raise HTTPException(status_code=404, detail='Item not found')
+            raise NotFoundException(Contact, id)
         
         return ContactDeleteResponse(
             message=f'Contact of id {id} deleted successfully',

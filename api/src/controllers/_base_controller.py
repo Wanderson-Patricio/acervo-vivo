@@ -7,7 +7,6 @@ class BaseController:
     def __init__(self, model: BasePostgreSQLModel):
         self.db_session = PostgreSQLSession(model)
 
-
     def list(self, **filters) -> List[BasePostgreSQLModel]:
         lim = int(filters.pop('limit', 10))
         page = int(filters.pop('page', 1))

@@ -1,6 +1,6 @@
 from base64 import b64decode
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime, date
 
@@ -10,6 +10,7 @@ from ..controllers import BaseController
 from ..models import Role
 from ..middlewares.require import RolesEnum
 from ..utils import CriptDict
+from ..errors import NotAuthenticatedException, NotFoundException, BadRequestException
 
 registration_router = APIRouter(prefix="/registration", tags=["Registration"])
 
@@ -23,7 +24,7 @@ class UserCreateRequest(BaseModel):
     user: UserCreateNonContactAddress
     contact: ContactCreate
     address: AddressCreate
-    password_bytes: str
+    password: str
 
 
 class UserCreateResponse(BaseModel):
@@ -92,11 +93,7 @@ def register_authentication(
 
     authentication_controller = BaseController(Authentication)
 
-    try:
-        # Validar se password_bytes é uma string binária válida
-        password = b64decode(authentication_data.password_bytes).decode('utf-8')
-    except (AttributeError, UnicodeDecodeError):
-        raise HTTPException(status_code=400, detail="Invalid binary password format.")
+    password = authentication_data.password
 
     authentication = Authentication(
         user_id=authentication_data.user_id,
@@ -114,7 +111,7 @@ def register_user(
     ) -> UserCreateResponse:
 
     if verify_user_exists(registration_data.user.cpf, BaseController(User)):
-        raise HTTPException(status_code=400, detail="User with this CPF already exists.")
+        raise BadRequestException(detail="User with this CPF already exists.")
 
     # Criar contato
     contact_id = register_contact(registration_data.contact)
@@ -127,7 +124,7 @@ def register_user(
     register_authentication(
         AuthenticationCreate(
             user_id=user_id,
-            password_bytes=registration_data.password_bytes
+            password=registration_data.password
         )
     )
 

@@ -1,11 +1,12 @@
-from fastapi import HTTPException, Request, Depends
-from typing import Any, Dict, List
+from fastapi import Request, Depends
+from typing import Dict, List
 from pydantic import BaseModel
 
-from ._base_router import BaseRouterModel, AccessDeniedException, get_user_access_level
+from ._base_router import BaseRouterModel, get_user_access_level
 from ..models import Role, RoleCreate, RoleUpdate
 from ..middlewares import get_current_user
 from ..middlewares.require import require, RolesEnum
+from ..errors import NotFoundException, NotAuthorizedException, BadRequestException
 
 # Aqui está o "pulo do gato": injetamos a dependência no nível do Router.
 # Agora, QUALQUER rota definida neste arquivo exigirá o header Authorization.
@@ -37,12 +38,12 @@ def get_by_id(
     user_role = Role(**current_user.get("role"))
 
     if user_role.name == RolesEnum.Viewer and user_role.id != id:
-        raise AccessDeniedException(RolesEnum.Viewer)
+        raise NotAuthorizedException(detail=f"Access denied: {RolesEnum.Viewer} role can only view their own role")
 
     controller = role_router_model.controller
     data = controller.get_by_id(id)
     if not data:
-        raise HTTPException(status_code=404, detail='Item not found')
+        raise NotFoundException(Role, id)
     return data
 
 
@@ -67,7 +68,7 @@ def create_role(
             role=new_role
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise BadRequestException(detail=str(e))
     
 
 class RoleUpdateResponse(BaseModel):
@@ -88,14 +89,14 @@ def update_role(
         update_data = updated_fields.dict(exclude_unset=True)
         rowcount = controller.update(id, **update_data)
         if rowcount == 0:
-            raise HTTPException(status_code=404, detail='Item not found')
+            raise NotFoundException(Role, id)
         
         return RoleUpdateResponse(
             message=f'Role of id {id} updated successfully',
             affected_rows=rowcount
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise BadRequestException(detail=str(e))
     
 
 class RoleDeleteResponse(BaseModel):
@@ -112,7 +113,7 @@ def delete_role(
     controller = role_router_model.controller
     rowcount = controller.delete(id)
     if rowcount == 0:
-        raise HTTPException(status_code=404, detail='Item not found')
+        raise NotFoundException(Role, id)
     
     return RoleDeleteResponse(
         message=f'Role of id {id} deleted successfully',
