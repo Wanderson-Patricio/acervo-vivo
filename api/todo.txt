@@ -1,0 +1,1 @@
+Permitir CORS na API

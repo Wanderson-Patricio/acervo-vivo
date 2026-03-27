@@ -68,8 +68,14 @@ def login(request: LoginRequest) -> AuthLoginResponse:
         auth_controller.update(auth_records.id, **update_data)
         auth_controller.db_session.reset_options()
 
+        remaining_attempts = MAXIMUM_RETRIES - auth_records.failed_attempts - 1
 
-        raise NotAuthenticatedException(detail=f"Invalid credentials. {MAXIMUM_RETRIES - auth_records.failed_attempts - 1} attempts remaining before account is blocked.")
+        if remaining_attempts <= 0:
+            detail = "Account is blocked due to multiple failed login attempts. Please contact support."
+        else:
+            detail = f"Invalid credentials. {remaining_attempts} {'attempts' if remaining_attempts > 1 else 'attempt'} remaining before account is blocked."
+
+        raise NotAuthenticatedException(detail=detail)
     
     auth_controller.update(auth_records.id, failed_attempts=0, is_blocked=False)
     role = BaseController(Role).get_by_id(user.role_id)

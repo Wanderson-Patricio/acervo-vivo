@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter
+from pydantic import BaseModel
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -73,14 +74,24 @@ for rout in routers_to_include:
     app.include_router(rout)
 
 
-@app.get('/', tags=['Root'], response_model=Dict[str, Union[str, Dict[str, str]]])
-def project_info() -> Dict[str, Union[str, Dict[str, str]]]:
-    return {
-        'project_name': app.title,
-        'maintainer': app.contact,
-        'documentation_url': f"http://{os.environ.get('API_HOST')}:{os.environ.get('API_PORT')}/docs",
-        'description': app.description
-    }
+class ProjectInfo(BaseModel):
+    class Contact(BaseModel):
+        name: str
+        email: str
+
+    title: str
+    maintainer: Contact
+    documentation_url: str
+    description: str
+
+@app.get('/', tags=['Root'], response_model=ProjectInfo)
+def project_info() -> ProjectInfo:
+    return ProjectInfo(
+        title=app.title,
+        maintainer=ProjectInfo.Contact(**app.contact),
+        documentation_url=f"http://{os.environ.get('API_HOST')}:{os.environ.get('API_PORT')}/docs",
+        description=app.description
+    )
 
 
 def main() -> None:

@@ -42,6 +42,7 @@ CREATE TABLE "Authentication"(
     "user_id" BIGINT NOT NULL,
     "hash_password" VARCHAR(255) NOT NULL,
     "last_time_altered" TIMESTAMP(0) WITH TIME zone NOT NULL,
+    "failed_attempts" SMALLINT NOT NULL DEFAULT 0,
     "is_blocked" BOOLEAN NOT NULL DEFAULT FALSE
 );
 ALTER TABLE

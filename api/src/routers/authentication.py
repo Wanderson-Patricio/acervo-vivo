@@ -45,6 +45,28 @@ def update_authentication(
     return AuthenticationUpdateResponse(message=f"Authentication updated successfully", affected_rows=rowcount)
 
 
+@authentication_router_model.router.put('/unblock/{user_id}', response_model=AuthenticationUpdateResponse)
+@require(RolesEnum.Admin)
+def unblock_authentication(
+        user_id: int,
+        current_user: Dict = Depends(get_current_user)
+    ) -> AuthenticationUpdateResponse:
+
+    controller = authentication_router_model.controller
+
+    update_data = {
+        "is_blocked": False,
+        "failed_attempts": 0
+    }
+
+    rowcount = controller.update(user_id, **update_data)
+
+    if rowcount == 0:
+        raise NotFoundException(Authentication, user_id)
+    
+    return AuthenticationUpdateResponse(message=f"Authentication unblocked successfully", affected_rows=rowcount)
+
+
 class AuthenticationDeleteResponse(BaseModel):
     message: str
     affected_rows: int
